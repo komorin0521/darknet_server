@@ -23,7 +23,7 @@ Darknet is as following:
 
     `$ cp -r darknet_server/* darknet/`
 
-4. Install python module from pip
+4. Install python module using pip
 
     `$ (sudo) pip install -r requirements.txt`
 
