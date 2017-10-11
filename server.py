@@ -3,9 +3,10 @@
 
 from __future__ import division, print_function, absolute_import
 
+
+import argparse
 import sys
 import os
-
 
 from flask import Flask, request, redirect, jsonify
 from werkzeug import secure_filename
@@ -70,7 +71,6 @@ class MyServer(object):
                 res = dict()
                 res['status'] = '500'
                 res['msg'] = 'The file format is only jpg or png'
-            
 
     def run(self):
         self.provide_automatic_option = False
@@ -79,11 +79,36 @@ class MyServer(object):
         self.app.run(host=self.host, port=self.port)
 
 
+def importargs():
+    parser = argparse.ArgumentParser('This is a server of darknet')
+
+    parser.add_argument("--cfgfilepath", "-cf", help = "config filepath  of darknet", type=str)
+    parser.add_argument("--datafilepath", "-df", help = "datafilepath of darknet", type=str)
+    parser.add_argument("--weightfilepath", "-wf", help = "weight filepath of darknet")
+
+
+    parser.add_argument("--host", "-H", help = "host name running server",type=str, required=False, default='localhost')
+
+    parser.add_argument("--port", "-P", help = "port of runnning server", type=str, required=False, default='8080')
+
+    parser.add_argument("--uploaddir", "-ud", help = "upload folder of images")
+
+    args = parser.parse_args()
+
+    assert os.path.exists(args.cfgfilepath), "cfgfilepath of %s does not exist" % args.cfgfilepath
+
+    assert os.path.exists(args.datafilepath), "datafilepath of %s does not exist" % args.datafilepath
+
+    assert os.path.exists(args.weightfilepath), "weightfilepath of %s does not exist" % args.weightfilepath
+
+    assert os.path.exists(args.uploaddir) & os.path.isdir(args.uploaddir), "uploaddir of %s does not exist or is not directory" % args.uploaddir
+
+    return args.cfgfilepath, args.datafilepath, args.weightfilepath, args.host, args.port, args.uploaddir
+
 
 def main():
-    cfgfilepath = "./cfg/yolo.cfg"
-    datafilepath = "./cfg/coco.data"
-    weightfilepath = "./yolo.weights"
+    cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir = importargs()
+
 
     yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
     server = MyServer('yolo_server', 'localhost', '8080', './upload', [ 'jpg', 'png' ], yolo )
