@@ -61,9 +61,11 @@ class MyServer(object):
                 res['status'] = '200'
                 res['result'] = list()
                 for yolo_result in yolo_results:
+                    print(yolo_result)
                     result = dict()
                     result['name'] = yolo_result[0]
-                    result['score'] = yolo_result[1]
+                    result['score'] = round(yolo_result[1], 3)
+                    result['bounding_box'] = [ yolo_result[2][0], yolo_result[2][1], yolo_result[2][2], yolo_result[2][3] ]
                     res['result'].append(result)
 
                 return jsonify(res)
