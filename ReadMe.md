@@ -12,12 +12,12 @@ Darknet is as following:
 - darknet revision: 1b001a7f58aacc7f8b751332d3a9d6d6d0200a2d
 
 # Setup
-1. install darknet
-   please show the darknet yolo website
+1. Install darknet
+   Install darknet, reading the website of darknet
 
-2. Clone of the this repository
+2. Clone of this repository
 
-    `$ git clone git@github.com:komorin0521/darknet_server.git`
+    `$ git clone https://github.com/komorin0521/darknet_server`
 
 3. Move all files and folders into darknet folder
 
