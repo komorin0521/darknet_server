@@ -15,21 +15,7 @@ from werkzeug import secure_filename
 
 sys.path.append(os.path.join(os.getcwd(),'python/'))
 import darknet as dn
-
-class Yolo(object):
-    def __init__(self, cfgfilepath, weightfilepath, datafilepath, thresh=0.25):
-        print(cfgfilepath)
-        print(weightfilepath)
-        self.net = dn.load_net(cfgfilepath, weightfilepath, 0)
-        self.meta = dn.load_meta(datafilepath)
-        self.thresh = thresh
-
-    def detect(self, filepath):
-        results = dn.detect(self.net, self.meta, filepath, self.thresh)
-        print("func is yolo server")
-        print(results)
-        return results
-
+from yolo import Yolo
 
 class MyServer(object):
     def __init__(self, name, host, port, upload_dir, extensions, yolo):
@@ -110,7 +96,6 @@ def importargs():
 
 def main():
     cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir = importargs()
-
 
     yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
     server = MyServer('yolo_server', 'localhost', '8080', './upload', [ 'jpg', 'png' ], yolo )
