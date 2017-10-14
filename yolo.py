@@ -8,11 +8,6 @@ import argparse
 import sys
 import os
 
-from flask import Flask, request, redirect, jsonify
-from werkzeug import secure_filename
-
-
-
 sys.path.append(os.path.join(os.getcwd(),'python/'))
 import darknet as dn
 
