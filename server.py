@@ -16,6 +16,7 @@ from werkzeug import secure_filename
 sys.path.append(os.path.join(os.getcwd(),'python/'))
 import darknet as dn
 from yolo import Yolo
+from yolo import YoloResult
 
 class MyServer(object):
     def __init__(self, name, host, port, upload_dir, extensions, yolo):
@@ -47,12 +48,8 @@ class MyServer(object):
                 res['status'] = '200'
                 res['result'] = list()
                 for yolo_result in yolo_results:
-                    print(yolo_result)
-                    result = dict()
-                    result['name'] = yolo_result[0]
-                    result['score'] = round(yolo_result[1], 3)
-                    result['bounding_box'] = [ yolo_result[2][0], yolo_result[2][1], yolo_result[2][2], yolo_result[2][3] ]
-                    res['result'].append(result)
+                    # print(yolo_result.get_detect_result())
+                    res['result'].append(yolo_result.get_detect_result())
 
                 return jsonify(res)
             else:
