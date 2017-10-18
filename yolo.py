@@ -17,8 +17,8 @@ class YoloResult(object):
     def __init__(self, obj_name, score, boundingbox):
         self.obj_name = obj_name
         self.score = score
-        self.x_central = boundingbox[0]
-        self.y_central = boundingbox[1]
+        self.x_min = boundingbox[0] - boundingbox[2]/2 -1
+        self.y_min = boundingbox[1] - boundingbox[3]/2 -1
         self.width = boundingbox[2]
         self.height = boundingbox[3]
 
@@ -26,8 +26,8 @@ class YoloResult(object):
         resultdict = { 'obj_name' : self.obj_name,
                        'score' : self.score,
                        'bounding_box' : {
-                           'x_central' : self.x_central,
-                           'y_central' : self.y_central,
+                           'x_min' : self.x_min,
+                           'y_min' : self.y_min,
                            'width' : self.width,
                            'height' : self.height }
                        }
@@ -56,12 +56,12 @@ class Yolo(object):
         img = cv2.imread(filepath, 1)
         for yolo_result in yolo_results:
             obj_name = yolo_result.obj_name
-            x = yolo_result.x_central - yolo_result.width/2 -1
-            y = yolo_result.y_central - yolo_result.height/2 -1
+            x = yolo_result.x_min
+            y = yolo_result.y_min
             w = yolo_result.width
             h = yolo_result.height
 
-            cv2.rectangle(img, (int(x), int(y)), (int(x+w+1), int(y+h+1)), 3)
+            cv2.rectangle(img, (int(x), int(y)), (int(x+w)+1, int(y+h)+1), 3)
             cv2.putText(img, obj_name, (int(x) -1, int(y) -1), cv2.FONT_HERSHEY_PLAIN, 2, 3)
         outputfilename = filepath.split(os.path.sep)[-1]
 
