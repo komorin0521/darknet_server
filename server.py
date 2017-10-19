@@ -5,12 +5,14 @@ from __future__ import division, print_function, absolute_import
 
 
 import argparse
+import io
 import sys
 import os
 
-from flask import Flask, request, redirect, jsonify
-from werkzeug import secure_filename
 
+from flask import Flask, request, redirect, jsonify
+from flask import send_file
+from werkzeug import secure_filename
 
 
 sys.path.append(os.path.join(os.getcwd(),'python/'))
@@ -57,9 +59,37 @@ class MyServer(object):
                 res['status'] = '500'
                 res['msg'] = 'The file format is only jpg or png'
 
+    def get_predict_image(self):
+        print("get_predict_image")
+        if request.method == 'POST':
+            file = request.files['file']
+            if file and self.check_allowfile(file.filename):
+                print("saving file")
+                output_filename = secure_filename(file.filename)
+                outputfilepath = os.path.join(self.app.config['UPLOAD_FOLDER'], output_filename)
+                file.save(outputfilepath)
+                yolo_results = self.yolo.detect(outputfilepath)
+                predicting_imgfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results)
+
+
+                with open(predicting_imgfilepath, 'rb') as img:
+                    return send_file(io.BytesIO(img.read()),
+                            attachment_filename=predicting_imgfilepath.split(os.path.sep)[-1],
+                            mimetype='image/%s' % file.filename.split('.')[-1])
+
+
+            else:
+                res = dict()
+                res['status'] = '500'
+                res['msg'] = 'The file format is only jpg or png'
+
+
+
     def run(self):
         self.provide_automatic_option = False
         self.app.add_url_rule('/detect', None, self.detect, methods = [ 'POST' ] )
+        self.app.add_url_rule('/get_predict_image', None, self.get_predict_image, methods = [ 'POST' ] )
+
         print("server run")
         self.app.run(host=self.host, port=self.port)
 
