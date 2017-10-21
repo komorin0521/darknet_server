@@ -3,4 +3,6 @@ Flask==0.12.2
 itsdangerous==0.24
 Jinja2==2.9.6
 MarkupSafe==1.0
+numpy==1.13.3
+opencv-python==3.3.0.10
 Werkzeug==0.12.2
