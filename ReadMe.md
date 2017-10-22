@@ -4,6 +4,14 @@ This is the python script, which is server of detection using darknet yolo.
 Darknet is as following:
  - https://pjreddie.com/darknet/yolo/
 
+This server has two API.
+
+1. Getting the detection result as json format
+    URI: '/detect'
+
+2. Getting the image which is embedded the rectangle and object name
+    URI: '/get_predict_image'
+
 # SoftWare
 - Python: 2.7.x
 
@@ -32,24 +40,38 @@ Darknet is as following:
     `$ python server.py -cf ./cfg/yolo.cfg -df ./cfg/coco.data -wf ./yolo.weights -ud ./upload`
 
 6. Check the server response from other terminal
+    - Getting detection result
+        `$ curl -XPOST -F file=@./data/person.jpg http://localhost:8080/detect`
 
-    `$ curl -XPOST -F file=@./data/person.jpg http://localhost:8080/detect`
+        If the server work well, you will get message like following
 
-    If the server work well, you will get message like following
+        ```
+        {
+            'status' : 200,
+            'result' : [
+                            { 'obj_name' : 'dog',
+                              'score' : 0.86223...,
+                     'bounding_box' : {
+                        'height' : 86.09...,
+                        'width' : 137.617...,
+                        'x_min': '61.686...',
+                        'y_min': '264.982...'
 
-    ```
-    {
-     'status' : 200,
-     'result' : [
-                   { 'name' : 'horse',
-                     'score' : 0.82,
-                     'bounding_box' : [ 132.15..., ..., ..., ... ]
+                     }
                    },
                    {
                      ...
                    }
                  ]
+    }
     ```
+
+    - Getting image
+
+    `$ curl -XPOST -F file=@/home/omori/darknet/data/person.jpg http://localhost:8080/get_predict_image > predictions.jpg`
+
+
+    
 
 # More information
 If you want more information about scripts, please show the help as following.
