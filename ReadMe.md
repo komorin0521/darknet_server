@@ -63,15 +63,11 @@ This server has two API.
                      ...
                    }
                  ]
-    }
-    ```
+        }
+        ```
 
     - Getting image
-
-    `$ curl -XPOST -F file=@/home/omori/darknet/data/person.jpg http://localhost:8080/get_predict_image > predictions.jpg`
-
-
-    
+        `$ curl -XPOST -F file=@/home/omori/darknet/data/person.jpg http://localhost:8080/get_predict_image > predictions.jpg`
 
 # More information
 If you want more information about scripts, please show the help as following.
