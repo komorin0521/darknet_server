@@ -41,6 +41,7 @@ This server has two API.
 
 6. Check the server response from other terminal
     - Getting detection result
+
         `$ curl -XPOST -F file=@./data/person.jpg http://localhost:8080/detect`
 
         If the server work well, you will get message like following
@@ -67,6 +68,7 @@ This server has two API.
         ```
 
     - Getting image
+
         `$ curl -XPOST -F file=@/home/omori/darknet/data/person.jpg http://localhost:8080/get_predict_image > predictions.jpg`
 
 # More information
