@@ -3,17 +3,14 @@
 
 from __future__ import division, print_function, absolute_import
 
-
 import argparse
 import io
 import sys
 import os
 
-
 from flask import Flask, request, redirect, jsonify
 from flask import send_file
 from werkzeug import secure_filename
-
 
 sys.path.append(os.path.join(os.getcwd(),'python/'))
 import darknet as dn
@@ -50,7 +47,6 @@ class MyServer(object):
                 res['status'] = '200'
                 res['result'] = list()
                 for yolo_result in yolo_results:
-                    # print(yolo_result.get_detect_result())
                     res['result'].append(yolo_result.get_detect_result())
 
                 return jsonify(res)
@@ -110,13 +106,35 @@ def importargs():
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.cfgfilepath), "cfgfilepath of %s does not exist" % args.cfgfilepath
+    file_exist_flag = True
 
-    assert os.path.exists(args.datafilepath), "datafilepath of %s does not exist" % args.datafilepath
+    if args.cfgfilepath:
+        assert os.path.exists(args.cfgfilepath), "cfgfilepath of %s does not exist" % args.cfgfilepath
+    else:
+        file_exist_flag = False
+        print("cfgfilepath is needed")
 
-    assert os.path.exists(args.weightfilepath), "weightfilepath of %s does not exist" % args.weightfilepath
+    if args.datafilepath:
+        assert os.path.exists(args.datafilepath), "datafilepath of %s does not exist" % args.datafilepath
+    else:
+        file_exist_flag = False
+        print("datafilepath is needed")
 
-    assert os.path.exists(args.uploaddir) & os.path.isdir(args.uploaddir), "uploaddir of %s does not exist or is not directory" % args.uploaddir
+    if args.weightfilepath:
+        assert os.path.exists(args.weightfilepath), "weightfilepath of %s does not exist" % args.weightfilepath
+    else:
+        file_exist_flag = False
+        print("weightfilepath is needed")
+
+    if args.uploaddir:
+        assert os.path.exists(args.uploaddir) & os.path.isdir(args.uploaddir), "uploaddir of %s does not exist or is not directory" % args.uploaddir
+    else:
+        file_exist_flag = False
+        print("uploaddir is needed")
+
+    if file_exist_flag is False:
+        parser.print_usage()
+        sys.exit(1)
 
     return args.cfgfilepath, args.datafilepath, args.weightfilepath, args.host, args.port, args.uploaddir
 

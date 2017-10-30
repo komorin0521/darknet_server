@@ -3,7 +3,6 @@
 
 from __future__ import division, print_function, absolute_import
 
-
 import argparse
 import sys
 import os
@@ -32,7 +31,6 @@ class YoloResult(object):
                            'height' : self.height }
                        }
         return resultdict
-
 
 class Yolo(object):
     def __init__(self, cfgfilepath, weightfilepath, datafilepath, thresh=0.25):
@@ -63,10 +61,14 @@ class Yolo(object):
 
             cv2.rectangle(img, (int(x), int(y)), (int(x+w)+1, int(y+h)+1), 3)
             cv2.putText(img, obj_name, (int(x) -1, int(y) -1), cv2.FONT_HERSHEY_PLAIN, 2, 3)
-        outputfilename = filepath.split(os.path.sep)[-1]
 
+        inputfilename = filepath.split(os.path.sep)[-1]
+
+        outputfilename = '%s_pred.%s' % (filepath.split('.')[0], filepath.split('.')[-1])
         outputfilepath = os.path.join(outputdir, outputfilename)
         cv2.imwrite(outputfilepath, img)
+
+        return outputfilepath
 
 def importargs():
     parser = argparse.ArgumentParser('This is the python script of yolo.This is only detect the objects')
@@ -78,15 +80,35 @@ def importargs():
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.cfgfilepath), "cfgfilepath of %s does not exist" % args.cfgfilepath
+    file_exist_flag = True
 
-    assert os.path.exists(args.datafilepath), "datafilepath of %s does not exist" % args.datafilepath
+    if args.cfgfilepath:
+        assert os.path.exists(args.cfgfilepath), "cfgfilepath of %s does not exist" % args.cfgfilepath
+    else:
+        file_exist_flag = False
+        print("cfgfilepath is needed")
 
-    assert os.path.exists(args.weightfilepath), "weightfilepath of %s does not exist" % args.weightfilepath
+    if args.datafilepath:
+        assert os.path.exists(args.datafilepath), "datafilepath of %s does not exist" % args.datafilepath
+    else:
+        file_exist_flag = False
+        print("datafilepath is needed")
 
-    assert os.path.exists(args.weightfilepath), "imagefilepath of %s does not exist" % args.imagefilepath
+    if args.weightfilepath:
+        assert os.path.exists(args.weightfilepath), "weightfilepath of %s does not exist" % args.weightfilepath
+    else:
+        file_exist_flag = False
+        print("weightfilepath is needed")
 
-    args = parser.parse_args()
+    if args.imagefilepath:
+        assert os.path.exists(args.weightfilepath), "imagefilepath of %s does not exist" % args.imagefilepath
+    else:
+        file_exist_flag = False
+        print("imagefilepath is needed")
+
+    if file_exist_flag is False:
+        parser.print_usage()
+        sys.exit(1)
 
     return args.cfgfilepath, args.datafilepath, args.weightfilepath, args.imagefilepath
 
