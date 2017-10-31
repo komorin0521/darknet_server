@@ -33,15 +33,14 @@ class YoloResult(object):
         return resultdict
 
 class Yolo(object):
-    def __init__(self, cfgfilepath, weightfilepath, datafilepath, thresh=0.25):
+    def __init__(self, cfgfilepath, weightfilepath, datafilepath):
         print(cfgfilepath)
         print(weightfilepath)
         self.net = dn.load_net(cfgfilepath, weightfilepath, 0)
         self.meta = dn.load_meta(datafilepath)
-        self.thresh = thresh
 
-    def detect(self, filepath):
-        raw_results = dn.detect(self.net, self.meta, filepath, self.thresh)
+    def detect(self, filepath, thresh=0.25):
+        raw_results = dn.detect(self.net, self.meta, filepath, thresh)
 
         detect_results = list()
         for raw_result in raw_results:
@@ -77,6 +76,7 @@ def importargs():
     parser.add_argument("--datafilepath", "-df", help = "datafilepath of darknet", type=str)
     parser.add_argument("--weightfilepath", "-wf", help = "weight filepath of darknet")
     parser.add_argument("--imagefilepath", "-if", help = "image filepath you want to detect")
+    parser.add_argument("--thresh", "-th", help = "thresh hold of yolo detection", type=float, required=False, default=0.25)
 
     args = parser.parse_args()
 
@@ -110,16 +110,15 @@ def importargs():
         parser.print_usage()
         sys.exit(1)
 
-    return args.cfgfilepath, args.datafilepath, args.weightfilepath, args.imagefilepath
+    return args.cfgfilepath, args.datafilepath, args.weightfilepath, args.imagefilepath, args.thresh
 
 def main():
-    cfgfilepath, datafilepath, weightfilepath, imagefilepath = importargs()
+    cfgfilepath, datafilepath, weightfilepath, imagefilepath, thresh = importargs()
 
     yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
-    yolo_results = yolo.detect(imagefilepath)
+    yolo_results = yolo.detect(imagefilepath, thresh)
+
     yolo.insert_rectangle(imagefilepath, yolo_results)
-    # for yolo_result in yolo_results:
-        # print("obj = %s, score = %.3f bounding_box = [ %f, %f, %f, %f]" % (yolo_result[0], yolo_result[1], yolo_result[2][0], yolo_result[2][1], yolo_result[2][2], yolo_result[2][3]))
 
 if __name__ == "__main__":
     main()

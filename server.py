@@ -41,7 +41,12 @@ class MyServer(object):
                 output_filename = secure_filename(file.filename)
                 outputfilepath = os.path.join(self.app.config['UPLOAD_FOLDER'], output_filename)
                 file.save(outputfilepath)
-                yolo_results = self.yolo.detect(outputfilepath)
+                if request.form.get("thresh"):
+                    thresh = float(request.form.get("thresh"))
+                    print("the request parameter of thresh hold is %f" % thresh)
+                    yolo_results = self.yolo.detect(outputfilepath, thresh)
+                else:
+                    yolo_results = self.yolo.detect(outputfilepath)
 
                 res = dict()
                 res['status'] = '200'
@@ -64,9 +69,13 @@ class MyServer(object):
                 output_filename = secure_filename(file.filename)
                 outputfilepath = os.path.join(self.app.config['UPLOAD_FOLDER'], output_filename)
                 file.save(outputfilepath)
-                yolo_results = self.yolo.detect(outputfilepath)
+                if request.form.get("thresh"):
+                    thresh = float(request.form.get("thresh"))
+                    print("the request parameter of thresh hold is %f" % thresh)
+                    yolo_results = self.yolo.detect(outputfilepath, thresh)
+                else:
+                    yolo_results = self.yolo.detect(outputfilepath)
                 predicting_imgfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results)
-
 
                 with open(predicting_imgfilepath, 'rb') as img:
                     return send_file(io.BytesIO(img.read()),
