@@ -8,9 +8,14 @@ This server has two API.
 
 1. Getting the detection result as json format
     URI: '/detect'
+    The parameter is 'thresh' which is threshold of yolo.
+    This is not required and the default value is 0.25.
+    If thresh is less than default, more object can be detected but misrecgnition increses.
+
 
 2. Getting the image which is embedded the rectangle and object name
     URI: '/get_predict_image'
+    The parameter is same as '/detect'
 
 # SoftWare
 - Python: 2.7.x
@@ -67,11 +72,24 @@ This server has two API.
         }
         ```
 
+        If you want to change the threshold, please request like following
+
+        `curl -F file=@./data/person.jpg -F thresh=0.850 http://localhost:8080/detect`
+
     - Getting image
 
         `$ curl -XPOST -F file=@/home/omori/darknet/data/person.jpg http://localhost:8080/get_predict_image > predictions.jpg`
+
+        If you want to change the threshold, please request like following
+
+        `curl -F file=@./data/person.jpg -F thresh=0.850 http://localhost:8080/get_predict_image > predictions.jpg`
 
 # More information
 If you want more information about scripts, please show the help as following.
 
 `$ python server.py -h`
+
+# Contacts
+If you have any questions, please send me an email or pull request.
+
+email: yu.omori0521@gmail.com
