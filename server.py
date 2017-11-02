@@ -152,7 +152,7 @@ def main():
     cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir = importargs()
 
     yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
-    server = MyServer('yolo_server', 'localhost', '8080', './upload', [ 'jpg', 'png' ], yolo )
+    server = MyServer('yolo_server', host, port, uploaddir, [ 'jpg', 'png' ], yolo )
     server.run()
 
 
