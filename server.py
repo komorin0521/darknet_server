@@ -1,16 +1,16 @@
 #!/usr/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import division, print_function, absolute_import
+from __future__ import division, print_function, absolute_import, unicode_literals
 
 import argparse
+import datetime
 import io
 import sys
 import os
 
 from flask import Flask, request, redirect, jsonify
 from flask import send_file
-from werkzeug import secure_filename
 
 sys.path.append(os.path.join(os.getcwd(),'python/'))
 import darknet as dn
@@ -28,65 +28,62 @@ class MyServer(object):
 
     def check_allowfile(self, filename):
         if len(filename.split(".")) > 1:
-            return filename.split(".")[-1] in self.extensions
+            extension = filename.split(".")[-1]
+            print("extension is %s" % extension)
+            return extension in self.extensions
         else:
             return False
 
-    def detect(self):
-        print("call detect")
-        if request.method == 'POST':
-            file = request.files['file']
-            if file and self.check_allowfile(file.filename):
-                print("saving file")
-                output_filename = secure_filename(file.filename)
-                outputfilepath = os.path.join(self.app.config['UPLOAD_FOLDER'], output_filename)
-                file.save(outputfilepath)
-                if request.form.get("thresh"):
-                    thresh = float(request.form.get("thresh"))
-                    print("the request parameter of thresh hold is %f" % thresh)
-                    yolo_results = self.yolo.detect(outputfilepath, thresh)
-                else:
-                    yolo_results = self.yolo.detect(outputfilepath)
 
-                res = dict()
-                res['status'] = '200'
-                res['result'] = list()
-                for yolo_result in yolo_results:
-                    res['result'].append(yolo_result.get_detect_result())
-
-                return jsonify(res)
+    def get_yolo_results(self, request):
+        file = request.files['file']
+        if file and self.check_allowfile(file.filename):
+            print("saving file which filename is %s" % file.filename)
+            output_filename = "%s_%s" % (datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), file.filename.encode('utf-8'))
+            print("output filename is %s" % output_filename)
+            outputfilepath = os.path.join(self.app.config['UPLOAD_FOLDER'], output_filename)
+            file.save(outputfilepath)
+            if request.form.get("thresh"):
+                thresh = float(request.form.get("thresh"))
+                print("the request parameter of thresh hold is %f" % thresh)
+                yolo_results = self.yolo.detect(outputfilepath, thresh)
             else:
-                res = dict()
-                res['status'] = '500'
-                res['msg'] = 'The file format is only jpg or png'
+                print("the threshold is not included of parameter")
+                yolo_results = self.yolo.detect(outputfilepath)
+            return yolo_results, outputfilepath
+
+
+    def detect(self):
+        print("call api of detect")
+        if request.method == 'POST':
+            yolo_results, outputfilepath = self.get_yolo_results(request)
+            res = dict()
+            res['status'] = '200'
+            res['result'] = list()
+            for yolo_result in yolo_results:
+                res['result'].append(yolo_result.get_detect_result())
+
+            return jsonify(res)
+        else:
+            res = dict()
+            res['status'] = '500'
+            res['msg'] = 'The file format is only jpg or png'
 
     def get_predict_image(self):
-        print("get_predict_image")
+        print("call api of get_predict_image")
         if request.method == 'POST':
-            file = request.files['file']
-            if file and self.check_allowfile(file.filename):
-                print("saving file")
-                output_filename = secure_filename(file.filename)
-                outputfilepath = os.path.join(self.app.config['UPLOAD_FOLDER'], output_filename)
-                file.save(outputfilepath)
-                if request.form.get("thresh"):
-                    thresh = float(request.form.get("thresh"))
-                    print("the request parameter of thresh hold is %f" % thresh)
-                    yolo_results = self.yolo.detect(outputfilepath, thresh)
-                else:
-                    yolo_results = self.yolo.detect(outputfilepath)
-                predicting_imgfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results)
+            yolo_results, outputfilepath = self.get_yolo_results(request)
+            predicting_imgfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results)
 
-                with open(predicting_imgfilepath, 'rb') as img:
-                    return send_file(io.BytesIO(img.read()),
-                            attachment_filename=predicting_imgfilepath.split(os.path.sep)[-1],
-                            mimetype='image/%s' % file.filename.split('.')[-1])
+            with open(predicting_imgfilepath, 'rb') as img:
+                return send_file(io.BytesIO(img.read()),
+                        attachment_filename=predicting_imgfilepath.split(os.path.sep)[-1],
+                        mimetype='image/%s' % predicting_imgfilepath.split('.')[-1])
 
-
-            else:
-                res = dict()
-                res['status'] = '500'
-                res['msg'] = 'The file format is only jpg or png'
+        else:
+            res = dict()
+            res['status'] = '500'
+            res['msg'] = 'The file format is only jpg or png'
 
 
 
