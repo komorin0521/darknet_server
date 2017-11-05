@@ -63,7 +63,7 @@ class Yolo(object):
 
         inputfilename = filepath.split(os.path.sep)[-1]
 
-        outputfilename = '%s_pred.%s' % (filepath.split('.')[0], filepath.split('.')[-1])
+        outputfilename = '%s_pred.%s' % (inputfilename.split('.')[0], inputfilename.split('.')[-1])
         outputfilepath = os.path.join(outputdir, outputfilename)
         cv2.imwrite(outputfilepath, img)
 

@@ -12,12 +12,12 @@ import os
 from flask import Flask, request, redirect, jsonify
 from flask import send_file
 from werkzeug import secure_filename
+from pykakasi import kakasi
 
 sys.path.append(os.path.join(os.getcwd(),'python/'))
 import darknet as dn
 from yolo import Yolo
 from yolo import YoloResult
-from pykakasi import kakasi
 
 class MyServer(object):
     def __init__(self, name, host, port, upload_dir, extensions, yolo):
@@ -29,14 +29,12 @@ class MyServer(object):
         self.yolo = yolo
         self.converter = None
 
-
     def setup_converter(self):
         mykakasi = kakasi()
         mykakasi.setMode('H', 'a')
         mykakasi.setMode('K', 'a')
         mykakasi.setMode('J', 'a')
         self.converter = mykakasi.getConverter()
-
 
     def convert_filename(self, filename):
         return self.converter.do(filename)
@@ -48,7 +46,6 @@ class MyServer(object):
             return extension in self.extensions
         else:
             return False
-
 
     def get_yolo_results(self, request):
         file = request.files['file']
@@ -67,7 +64,6 @@ class MyServer(object):
                 yolo_results = self.yolo.detect(outputfilepath)
             return yolo_results, outputfilepath
 
-
     def detect(self):
         print("call api of detect")
         if request.method == 'POST':
@@ -78,6 +74,9 @@ class MyServer(object):
             for yolo_result in yolo_results:
                 res['result'].append(yolo_result.get_detect_result())
 
+            outputfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results, '/var/www/html/images')
+            filename = outputfilepath.split(os.path.sep)[-1]
+            res['image_src'] = 'http://%s/images/%s' % (self.host, filename)
             return jsonify(res)
         else:
             res = dict()
