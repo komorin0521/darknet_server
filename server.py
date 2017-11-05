@@ -11,11 +11,13 @@ import os
 
 from flask import Flask, request, redirect, jsonify
 from flask import send_file
+from werkzeug import secure_filename
 
 sys.path.append(os.path.join(os.getcwd(),'python/'))
 import darknet as dn
 from yolo import Yolo
 from yolo import YoloResult
+from pykakasi import kakasi
 
 class MyServer(object):
     def __init__(self, name, host, port, upload_dir, extensions, yolo):
@@ -25,6 +27,19 @@ class MyServer(object):
         self.app.config['UPLOAD_FOLDER'] = upload_dir
         self.extensions = extensions
         self.yolo = yolo
+        self.converter = None
+
+
+    def setup_converter(self):
+        mykakasi = kakasi()
+        mykakasi.setMode('H', 'a')
+        mykakasi.setMode('K', 'a')
+        mykakasi.setMode('J', 'a')
+        self.converter = mykakasi.getConverter()
+
+
+    def convert_filename(self, filename):
+        return self.converter.do(filename)
 
     def check_allowfile(self, filename):
         if len(filename.split(".")) > 1:
@@ -38,8 +53,8 @@ class MyServer(object):
     def get_yolo_results(self, request):
         file = request.files['file']
         if file and self.check_allowfile(file.filename):
-            print("saving file which filename is %s" % file.filename)
-            output_filename = "%s_%s" % (datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), file.filename.encode('utf-8'))
+            print("receive the file, the filename is %s" % file.filename)
+            output_filename = "%s_%s" % (datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), self.convert_filename(file.filename))
             print("output filename is %s" % output_filename)
             outputfilepath = os.path.join(self.app.config['UPLOAD_FOLDER'], output_filename)
             file.save(outputfilepath)
@@ -85,8 +100,6 @@ class MyServer(object):
             res['status'] = '500'
             res['msg'] = 'The file format is only jpg or png'
 
-
-
     def run(self):
         self.provide_automatic_option = False
         self.app.add_url_rule('/detect', None, self.detect, methods = [ 'POST' ] )
@@ -95,19 +108,14 @@ class MyServer(object):
         print("server run")
         self.app.run(host=self.host, port=self.port)
 
-
 def importargs():
     parser = argparse.ArgumentParser('This is a server of darknet')
 
     parser.add_argument("--cfgfilepath", "-cf", help = "config filepath  of darknet", type=str)
     parser.add_argument("--datafilepath", "-df", help = "datafilepath of darknet", type=str)
     parser.add_argument("--weightfilepath", "-wf", help = "weight filepath of darknet")
-
-
     parser.add_argument("--host", "-H", help = "host name running server",type=str, required=False, default='localhost')
-
-    parser.add_argument("--port", "-P", help = "port of runnning server", type=str, required=False, default='8080')
-
+    parser.add_argument("--port", "-P", help = "port of runnning server", type=int, required=False, default=8080)
     parser.add_argument("--uploaddir", "-ud", help = "upload folder of images")
 
     args = parser.parse_args()
@@ -147,11 +155,10 @@ def importargs():
 
 def main():
     cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir = importargs()
-
     yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
     server = MyServer('yolo_server', host, port, uploaddir, [ 'jpg', 'png' ], yolo )
+    server.setup_converter()
     server.run()
-
 
 if __name__ == "__main__":
     main()
