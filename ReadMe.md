@@ -42,7 +42,9 @@ This server has two API.
 
 5. Running server
 
-    `$ python server.py -cf ./cfg/yolo.cfg -df ./cfg/coco.data -wf ./yolo.weights -ud ./upload`
+    `$ python server.py -cf ./cfg/yolo.cfg -df ./cfg/coco.data -wf ./yolo.weights -ud ./upload -pf false`
+
+    You can show the detail of arguments using option of "-h".
 
 6. Check the server response from other terminal
     - Getting detection result
@@ -50,6 +52,8 @@ This server has two API.
         `$ curl -XPOST -F file=@./data/person.jpg http://localhost:8080/detect`
 
         If the server work well, you will get message like following
+        When you start up "-pf true" and the process can access /var/www/html/images, 
+        you can get the image src.
 
         ```
         {
@@ -68,7 +72,8 @@ This server has two API.
                    {
                      ...
                    }
-                 ]
+                 ],
+            'img_src' : 'http://localhost/images/yyyymmdd_pred.jpg'
         }
         ```
 
