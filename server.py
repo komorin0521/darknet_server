@@ -127,6 +127,7 @@ def importargs():
     parser.add_argument("--host", "-H", help = "host name running server",type=str, required=False, default='localhost')
     parser.add_argument("--port", "-P", help = "port of runnning server", type=int, required=False, default=8080)
     parser.add_argument("--uploaddir", "-ud", help = "upload folder of images")
+    parser.add_argument("--publish-image-flag","-pf", help="If true, outputting the image of /var/www/html and add the image src to response",type=str, required=False, default="False", choices= [ "true", "false", "True", "False" ])
 
     args = parser.parse_args()
 
@@ -160,13 +161,17 @@ def importargs():
         parser.print_usage()
         sys.exit(1)
 
-    return args.cfgfilepath, args.datafilepath, args.weightfilepath, args.host, args.port, args.uploaddir
+    if args.publish_image_flag in [ "True", "true" ]:
+        publish_image_flag = True
+    else:
+        publish_image_flag = False
+    return args.cfgfilepath, args.datafilepath, args.weightfilepath, args.host, args.port, args.uploaddir, publish_image_flag
 
 
 def main():
-    cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir = importargs()
+    cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir, pub_img_flag = importargs()
     yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
-    server = MyServer('yolo_server', host, port, uploaddir, [ 'jpg', 'png' ], yolo )
+    server = MyServer('yolo_server', host, port, uploaddir, [ 'jpg', 'png' ], pub_img_flag, yolo )
     server.setup_converter()
     server.run()
 
