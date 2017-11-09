@@ -20,7 +20,7 @@ from yolo import Yolo
 from yolo import YoloResult
 
 class MyServer(object):
-    def __init__(self, name, host, port, upload_dir, extensions, yolo):
+    def __init__(self, name, host, port, upload_dir, extensions, pub_img_flag, yolo):
         self.app = Flask(name)
         self.host = host
         self.port = port
@@ -28,6 +28,7 @@ class MyServer(object):
         self.extensions = extensions
         self.yolo = yolo
         self.converter = None
+        self.pub_img_flag = pub_img_flag
 
     def setup_converter(self):
         mykakasi = kakasi()
@@ -74,9 +75,19 @@ class MyServer(object):
             for yolo_result in yolo_results:
                 res['result'].append(yolo_result.get_detect_result())
 
-            outputfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results, '/var/www/html/images')
-            filename = outputfilepath.split(os.path.sep)[-1]
-            res['image_src'] = 'http://%s/images/%s' % (self.host, filename)
+            if self.pub_img_flag:
+                try:
+                    outputfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results, '/var/www/html/images')
+                    filename = outputfilepath.split(os.path.sep)[-1]
+                    res['image_src'] = 'http://%s/images/%s' % (self.host, filename)
+
+                except Exception as e:
+                    print("An error occured")
+                    print("The information of error is as following")
+                    print(type(e))
+                    print(e.args)
+                    print(e)
+
             return jsonify(res)
         else:
             res = dict()
