@@ -42,12 +42,7 @@ class Yolo(object):
     def detect(self, filepath, thresh=0.25):
         raw_results = dn.detect(self.net, self.meta, filepath, thresh)
 
-        detect_results = list()
-        for raw_result in raw_results:
-            yolo_result = YoloResult(raw_result[0], raw_result[1], raw_result[2])
-            print(yolo_result.get_detect_result())
-            detect_results.append(yolo_result)
-        return detect_results
+        return [ YoloResult(raw_result[0], raw_result[1], raw_result[2]) for raw_result in raw_results ]
 
     def insert_rectangle(self, filepath, yolo_results, outputdir='outputdir'):
         img = cv2.imread(filepath, 1)
