@@ -121,9 +121,9 @@ class MyServer(object):
 def importargs():
     parser = argparse.ArgumentParser('This is a server of darknet')
 
-    parser.add_argument("--cfgfilepath", "-cf", help = "config filepath  of darknet", type=str)
-    parser.add_argument("--datafilepath", "-df", help = "datafilepath of darknet", type=str)
-    parser.add_argument("--weightfilepath", "-wf", help = "weight filepath of darknet")
+    parser.add_argument("--cfgfilepath", "-cf", help = "config filepath  of darknet", type=str, required=True)
+    parser.add_argument("--datafilepath", "-df", help = "datafilepath of darknet", type=str, required=True)
+    parser.add_argument("--weightfilepath", "-wf", help = "weight filepath of darknet", required=True)
     parser.add_argument("--host", "-H", help = "host name running server",type=str, required=False, default='localhost')
     parser.add_argument("--port", "-P", help = "port of runnning server", type=int, required=False, default=8080)
     parser.add_argument("--uploaddir", "-ud", help = "upload folder of images")
@@ -131,40 +131,16 @@ def importargs():
 
     args = parser.parse_args()
 
-    file_exist_flag = True
-
-    if args.cfgfilepath:
-        assert os.path.exists(args.cfgfilepath), "cfgfilepath of %s does not exist" % args.cfgfilepath
-    else:
-        file_exist_flag = False
-        print("cfgfilepath is needed")
-
-    if args.datafilepath:
-        assert os.path.exists(args.datafilepath), "datafilepath of %s does not exist" % args.datafilepath
-    else:
-        file_exist_flag = False
-        print("datafilepath is needed")
-
-    if args.weightfilepath:
-        assert os.path.exists(args.weightfilepath), "weightfilepath of %s does not exist" % args.weightfilepath
-    else:
-        file_exist_flag = False
-        print("weightfilepath is needed")
-
-    if args.uploaddir:
-        assert os.path.exists(args.uploaddir) & os.path.isdir(args.uploaddir), "uploaddir of %s does not exist or is not directory" % args.uploaddir
-    else:
-        file_exist_flag = False
-        print("uploaddir is needed")
-
-    if file_exist_flag is False:
-        parser.print_usage()
-        sys.exit(1)
+    assert os.path.exists(args.cfgfilepath), "cfgfilepath of %s does not exist" % args.cfgfilepath
+    assert os.path.exists(args.datafilepath), "datafilepath of %s does not exist" % args.datafilepath
+    assert os.path.exists(args.weightfilepath), "weightfilepath of %s does not exist" % args.weightfilepath
+    assert os.path.exists(args.uploaddir) & os.path.isdir(args.uploaddir), "uploaddir of %s does not exist or is not directory" % args.uploaddir
 
     if args.publish_image_flag in [ "True", "true" ]:
         publish_image_flag = True
-    else:
+    elif args.publish_image_flag in [ "False", "false" ]:
         publish_image_flag = False
+
     return args.cfgfilepath, args.datafilepath, args.weightfilepath, args.host, args.port, args.uploaddir, publish_image_flag
 
 
