@@ -18,19 +18,32 @@ sys.path.append(os.path.join(os.getcwd(),'python/'))
 import darknet as dn
 from yolo import Yolo
 from yolo import YoloResult
+# from read_conf import read_conf
 
-class MyServer(object):
-    def __init__(self, name, host, port, upload_dir, extensions, pub_img_flag, yolo):
-        self.app = Flask(name)
-        self.host = host
-        self.port = port
-        self.app.config['UPLOAD_FOLDER'] = upload_dir
+class DarknetServer(Flask):
+    def __init__(self, name, upload_dir, extensions, pub_img_flag, yolo):
+        """
+        init server class
+        """
+        super(DarknetServer, self).__init__(name)
+        self.config['UPLOAD_FOLDER'] = upload_dir
         self.extensions = extensions
         self.yolo = yolo
         self.converter = None
         self.pub_img_flag = pub_img_flag
+        self.define_uri()
+
+    def define_uri(self):
+        """
+        definition of uri
+        """
+        self.provide_automatic_option = False
+        self.add_url_rule('/detect', None, self.detect, methods = [ 'POST' ] )
+        self.add_url_rule('/get_predict_image', None, self.get_predict_image, methods = [ 'POST' ] )
 
     def setup_converter(self):
+        """
+        """
         mykakasi = kakasi()
         mykakasi.setMode('H', 'a')
         mykakasi.setMode('K', 'a')
@@ -38,9 +51,15 @@ class MyServer(object):
         self.converter = mykakasi.getConverter()
 
     def convert_filename(self, filename):
+        """
+        converting filename using pykakasi
+        """
         return self.converter.do(filename)
 
     def check_allowfile(self, filename):
+        """
+        checking extenson
+        """
         if len(filename.split(".")) > 1:
             extension = filename.split(".")[-1]
             print("extension is %s" % extension)
@@ -49,12 +68,17 @@ class MyServer(object):
             return False
 
     def get_yolo_results(self, request):
+        """
+        Getting yolo results
+        @param: request
+        @return: the list of yolo result
+        """
         file = request.files['file']
         if file and self.check_allowfile(file.filename):
             print("receive the file, the filename is %s" % file.filename)
             output_filename = "%s_%s" % (datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), self.convert_filename(file.filename))
             print("output filename is %s" % output_filename)
-            outputfilepath = os.path.join(self.app.config['UPLOAD_FOLDER'], output_filename)
+            outputfilepath = os.path.join(self.config['UPLOAD_FOLDER'], output_filename)
             file.save(outputfilepath)
             if request.form.get("thresh"):
                 thresh = float(request.form.get("thresh"))
@@ -66,6 +90,9 @@ class MyServer(object):
             return yolo_results, outputfilepath
 
     def detect(self):
+        """
+        Detection using yolo. '/detect'
+        """
         print("call api of detect")
         if request.method == 'POST':
             yolo_results, outputfilepath = self.get_yolo_results(request)
@@ -95,6 +122,9 @@ class MyServer(object):
             res['msg'] = 'The file format is only jpg or png'
 
     def get_predict_image(self):
+        """
+        Getting yolo result
+        """
         print("call api of get_predict_image")
         if request.method == 'POST':
             yolo_results, outputfilepath = self.get_yolo_results(request)
@@ -109,14 +139,6 @@ class MyServer(object):
             res = dict()
             res['status'] = '500'
             res['msg'] = 'The file format is only jpg or png'
-
-    def run(self):
-        self.provide_automatic_option = False
-        self.app.add_url_rule('/detect', None, self.detect, methods = [ 'POST' ] )
-        self.app.add_url_rule('/get_predict_image', None, self.get_predict_image, methods = [ 'POST' ] )
-
-        print("server run")
-        self.app.run(host=self.host, port=self.port)
 
 def importargs():
     parser = argparse.ArgumentParser('This is a server of darknet')
@@ -147,9 +169,13 @@ def importargs():
 def main():
     cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir, pub_img_flag = importargs()
     yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
-    server = MyServer('yolo_server', host, port, uploaddir, [ 'jpg', 'png' ], pub_img_flag, yolo )
+
+    server = DarknetServer('yolo_server', uploaddir, [ 'jpg', 'png' ], pub_img_flag, yolo )
     server.setup_converter()
-    server.run()
+    print("server run")
+    server.run(host=host, port=port)
+
+
 
 if __name__ == "__main__":
     main()
