@@ -32,6 +32,15 @@ class YoloResult(object):
                        }
         return resultdict
 
+    def show(self):
+        print("obj_name: %s" % self.obj_name)
+        print("score   : %.3f" % self.score)
+        print("x_min   : %.2f" % self.x_min)
+        print("y_min   : %.3f" % self.y_min)
+        print("width   : %.3f" % self.width)
+        print("height  : %.3f" % self.height)
+
+
 class Yolo(object):
     def __init__(self, cfgfilepath, weightfilepath, datafilepath):
         print(cfgfilepath)
@@ -112,6 +121,9 @@ def main():
 
     yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
     yolo_results = yolo.detect(imagefilepath, thresh)
+
+    for yolo_result in yolo_results:
+        yolo_result.show()
 
     yolo.insert_rectangle(imagefilepath, yolo_results)
 
