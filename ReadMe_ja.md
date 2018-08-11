@@ -12,20 +12,20 @@ darknetについては下記を見てください
     パラメータは"file"と"thresh"（閾値）です。
     閾値は任意で、デフォルトはdarknet本家と同じ0.25にしてます。
     低く設定するとその分、より多くの検出結果が返ってきますが、
-    ご認識も多くなります。
+    誤認識も多くなります。
 
 2. 検出結果の画像取得API
     URI: '/get_predict_image'
     パラメータは検出結果取得APIと同様です
 
 # SoftWare
-- Python: 2.7.x
+- Python: 3.5.x
 
-    2.7.13でのみ動作確認しています
+    3.5.2でのみ動作確認しています
 
 - darknet revision
 
-    1b001a7f58aacc7f8b751332d3a9d6d6d0200a2d
+    9a4b19c4158b064a164e34a83ec8a16401580850
 
     上記のコミットでのみ動作確認しています。
 
@@ -38,7 +38,7 @@ darknetについては下記を見てください
 
 3. 本レポジトリのファイルをdarknetと同様のフォルダに移動させる
 
-    `$ cp -r darknet_server/* darknet/`
+    `$ cp -r darknet_server/* darknet/python`
 
 4. pipを用いて必要なパッケージをインストールする
 
@@ -46,7 +46,7 @@ darknetについては下記を見てください
 
 5. サーバを起動する
 
-    `$ python server.py -cf ./cfg/yolo.cfg -df ./cfg/coco.data -wf ./yolo.weights -ud ./upload -pf false`
+    `$ PYTHONPATH=${darknet_path}/python python python/darknet_server.py -cf ./cfg/yolov3.cfg -df ./cfg/coco.data -wf ./yolov3.weights -ud ./upload -pf false`
 
     You can show the detail of arguments using option of "-h".
 
@@ -96,7 +96,7 @@ darknetについては下記を見てください
 # More information
 引数の詳細等については下記のコマンドを実行してください
 
-`$ python server.py -h`
+`$ python darknet_server.py -h`
 
 # Contacts
 ご質問等があればpullリクエストやメールください

@@ -18,11 +18,11 @@ This server has two API.
     The parameter is same as '/detect'
 
 # SoftWare
-- Python: 2.7.x
+- Python: 3.x
 
-    I test only 2.7.13
+    I test only 3.5.2
 
-- darknet revision: 1b001a7f58aacc7f8b751332d3a9d6d6d0200a2d
+- darknet revision: 9a4b19c4158b064a164e34a83ec8a16401580850
 
 # Setup
 1. Install darknet
@@ -34,7 +34,7 @@ This server has two API.
 
 3. Move all files and folders into darknet folder
 
-    `$ cp -r darknet_server/* darknet/`
+    `$ cp -r darknet_server/* ${darknetPATH}/python`
 
 4. Install python module using pip
 
@@ -42,7 +42,7 @@ This server has two API.
 
 5. Running server
 
-    `$ python server.py -cf ./cfg/yolo.cfg -df ./cfg/coco.data -wf ./yolo.weights -ud ./upload -pf false`
+    `$ PYTHONPATH=${darknetPATH}/python python3 darknet_server.py -cf ./cfg/yolov3.cfg -df ./cfg/coco.data -wf ./yolov3.weights -ud ./upload -pf false`
 
     You can show the detail of arguments using option of "-h".
 
