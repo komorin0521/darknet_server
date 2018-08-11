@@ -9,23 +9,24 @@ import io
 import sys
 import os
 
+import cv2
 from flask import Flask, request, redirect, jsonify
 from flask import send_file
 from werkzeug import secure_filename
 from pykakasi import kakasi
 
-sys.path.append(os.path.join(os.getcwd(),'python/'))
-import darknet as dn
-from yolo import Yolo
-from yolo import YoloResult
+
+from darknet import Yolo
+from darknet import YoloResult
 # from read_conf import read_conf
 
 class DarknetServer(Flask):
-    def __init__(self, name, upload_dir, extensions, pub_img_flag, yolo):
+    def __init__(self, host, name, upload_dir, extensions, pub_img_flag, yolo):
         """
         init server class
         """
         super(DarknetServer, self).__init__(name)
+        self.host = host
         self.config['UPLOAD_FOLDER'] = upload_dir
         self.extensions = extensions
         self.yolo = yolo
@@ -80,14 +81,24 @@ class DarknetServer(Flask):
             print("output filename is %s" % output_filename)
             outputfilepath = os.path.join(self.config['UPLOAD_FOLDER'], output_filename)
             file.save(outputfilepath)
+
+            try:
+                img = cv2.imread(outputfilepath)
+            except Exception as err:
+                print(err)
+
             if request.form.get("thresh"):
                 thresh = float(request.form.get("thresh"))
                 print("the request parameter of thresh hold is %f" % thresh)
-                yolo_results = self.yolo.detect(outputfilepath, thresh)
+                yolo_results = self.yolo.predict(img, thresh)
             else:
                 print("the threshold is not included of parameter")
-                yolo_results = self.yolo.detect(outputfilepath)
-            return yolo_results, outputfilepath
+                yolo_results = self.yolo.predict(img)
+                for yolo_result in yolo_results:
+                    print("=========================")
+                    yolo_result.show()
+
+            return img, yolo_results, outputfilepath
 
     def detect(self):
         """
@@ -95,7 +106,7 @@ class DarknetServer(Flask):
         """
         print("call api of detect")
         if request.method == 'POST':
-            yolo_results, outputfilepath = self.get_yolo_results(request)
+            img, yolo_results, outputfilepath = self.get_yolo_results(request)
             res = dict()
             res['status'] = '200'
             res['result'] = list()
@@ -104,9 +115,13 @@ class DarknetServer(Flask):
 
             if self.pub_img_flag:
                 try:
-                    outputfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results, '/var/www/html/images')
+                    pred_img = self.yolo.draw_detections(img, yolo_results)
+                    tmpfilename = outputfilepath.split(os.path.sep)[-1]
+                    outputfilename = "%s_pred.jpg" % tmpfilename.split('.')[0]
+
+                    self.yolo.save_img(pred_img, '/var/www/html/images/%s' % outputfilename)
                     filename = outputfilepath.split(os.path.sep)[-1]
-                    res['image_src'] = 'http://%s/images/%s' % (self.host, filename)
+                    res['image_src'] = 'http://%s/images/%s' % (self.host, outputfilename)
 
                 except Exception as e:
                     print("An error occured")
@@ -127,13 +142,24 @@ class DarknetServer(Flask):
         """
         print("call api of get_predict_image")
         if request.method == 'POST':
-            yolo_results, outputfilepath = self.get_yolo_results(request)
-            predicting_imgfilepath = self.yolo.insert_rectangle(outputfilepath, yolo_results)
+            print("get yolo results")
+            img, yolo_results, outputfilepath = self.get_yolo_results(request)
 
-            with open(predicting_imgfilepath, 'rb') as img:
+            print("draw detections")
+            pred_img = self.yolo.draw_detections(img, yolo_results)
+
+            tmpfilename = outputfilepath.split(os.path.sep)[-1]
+            print(tmpfilename)
+            pred_outputfilename = "%s_pred.jpg" % tmpfilename.split('.')[0]
+            pred_img_outputfilepath = os.path.join(self.config['UPLOAD_FOLDER'], pred_outputfilename)
+
+            print("pred img outputfilepath: %s" % pred_img_outputfilepath)
+            self.yolo.save_img(pred_img, pred_img_outputfilepath)
+
+            with open(pred_img_outputfilepath, 'rb') as img:
                 return send_file(io.BytesIO(img.read()),
-                        attachment_filename=predicting_imgfilepath.split(os.path.sep)[-1],
-                        mimetype='image/%s' % predicting_imgfilepath.split('.')[-1])
+                        attachment_filename=pred_outputfilename,
+                        mimetype='image/%s' % pred_outputfilename.split('.')[-1])
 
         else:
             res = dict()
@@ -168,9 +194,9 @@ def importargs():
 
 def main():
     cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir, pub_img_flag = importargs()
-    yolo = Yolo(cfgfilepath, weightfilepath, datafilepath)
+    yolo = Yolo(cfgfilepath.encode(), datafilepath.encode(), weightfilepath.encode())
 
-    server = DarknetServer('yolo_server', uploaddir, [ 'jpg', 'png' ], pub_img_flag, yolo )
+    server = DarknetServer(host, 'yolo_server', uploaddir, [ 'jpg', 'png' ], pub_img_flag, yolo )
     server.setup_converter()
     print("server run")
     server.run(host=host, port=port)
