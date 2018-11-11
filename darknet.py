@@ -291,7 +291,7 @@ class Darknet(object):
             box_width = int(height * 0.006)
             cv2.rectangle(img, (int(x), int(y)), (int(x+w)+1, int(y+h)+1), (red, green, blue), box_width)
             cv2.putText(
-                        img, obj_name.decode(),
+                        img, obj_name,
                         (int(x) -2, int(y) -5),
                         cv2.FONT_HERSHEY_COMPLEX,
                         1.2, (red, green, blue),

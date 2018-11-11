@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import argparse
+import configparser
 import datetime
 import io
 import sys
 import os
+import re
+
 
 import cv2
 from flask import Flask, request, redirect, jsonify
 from flask import send_file
-from werkzeug import secure_filename
+import numpy as np
+from PIL import Image
 from pykakasi import kakasi
+from werkzeug import secure_filename
 
 
-from darknet import Yolo
-from darknet import YoloResult
-# from read_conf import read_conf
+from darknet import Darknet
+from yolo_result import YoloResult
 
 class DarknetServer(Flask):
     def __init__(self, host, name, upload_dir, extensions, pub_img_flag, yolo):
@@ -75,23 +78,25 @@ class DarknetServer(Flask):
         file = request.files['file']
         if file and self.check_allowfile(file.filename):
             print("receive the file, the filename is %s" % file.filename)
+            # for debug
             output_filename = "%s_%s" % (datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), self.convert_filename(file.filename))
             print("output filename is %s" % output_filename)
             outputfilepath = os.path.join(self.config['UPLOAD_FOLDER'], output_filename)
             file.save(outputfilepath)
 
             try:
-                img = cv2.imread(outputfilepath)
+                # ToDo: use io.BytesIO
+                img = np.array(Image.open(outputfilepath))
             except Exception as err:
                 print(err)
 
             if request.form.get("thresh"):
                 thresh = float(request.form.get("thresh"))
                 print("the request parameter of thresh hold is %f" % thresh)
-                yolo_results = self.yolo.predict(img, thresh)
+                yolo_results = self.yolo.detect(img, thresh)
             else:
                 print("the threshold is not included of parameter")
-                yolo_results = self.yolo.predict(img)
+                yolo_results = self.yolo.detect(img)
                 for yolo_result in yolo_results:
                     print("=========================")
                     yolo_result.show()
@@ -113,7 +118,8 @@ class DarknetServer(Flask):
 
             if self.pub_img_flag:
                 try:
-                    pred_img = self.yolo.draw_detections(img, yolo_results)
+                    cv2_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    pred_img = self.yolo.draw_detections(cv2_img, yolo_results)
                     tmpfilename = outputfilepath.split(os.path.sep)[-1]
                     outputfilename = "%s_pred.jpg" % tmpfilename.split('.')[0]
 
@@ -144,7 +150,8 @@ class DarknetServer(Flask):
             img, yolo_results, outputfilepath = self.get_yolo_results(request)
 
             print("draw detections")
-            pred_img = self.yolo.draw_detections(img, yolo_results)
+            cv2_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            pred_img = self.yolo.draw_detections(cv2_img, yolo_results)
 
             tmpfilename = outputfilepath.split(os.path.sep)[-1]
             print(tmpfilename)
@@ -152,7 +159,7 @@ class DarknetServer(Flask):
             pred_img_outputfilepath = os.path.join(self.config['UPLOAD_FOLDER'], pred_outputfilename)
 
             print("pred img outputfilepath: %s" % pred_img_outputfilepath)
-            self.yolo.save_img(pred_img, pred_img_outputfilepath)
+            cv2.imwrite(pred_img_outputfilepath, pred_img)
 
             with open(pred_img_outputfilepath, 'rb') as img:
                 return send_file(io.BytesIO(img.read()),
@@ -163,6 +170,81 @@ class DarknetServer(Flask):
             res = dict()
             res['status'] = '500'
             res['msg'] = 'The file format is only jpg or png'
+
+
+def get_params(configfilepath):
+    """
+    getting parameter from config
+    """
+
+    config = configparser.ConfigParser()
+    config.read(configfilepath)
+
+    try:
+
+        # for YOLO
+        darknetlibfilepath = config.get('YOLO', 'darknetlibfilepath')
+        datafilepath = config.get('YOLO', 'datafilepath')
+        cfgfilepath = config.get('YOLO', 'cfgfilepath')
+        weightfilepath = config.get('YOLO', 'weightfilepath')
+
+        # for Server
+        host = config.get('Server', 'host')
+        port = config.getint('Server', 'port')
+        uploaddir = config.get('Server', 'uploaddir')
+        pub_img_flg = config.getboolean('Server', 'publish_image_flg')
+        return darknetlibfilepath, datafilepath, cfgfilepath, \
+            weightfilepath, host, port, uploaddir, pub_img_flg
+
+    except configparser.Error as config_parse_err:
+        raise config_parse_err
+
+def check_path(targetpath):
+    """
+    checking path
+    """
+    if not os.path.exists(targetpath):
+        print('%s does not exist' % targetpath)
+        return False
+    else:
+        return True
+
+
+def validate_host_name(hostname):
+    """
+    validate host name
+    refference: https://stackoverflow.com/questions/2532053/validate-a-hostname-string
+    """
+
+    if len(hostname) > 255:
+        return False
+    if hostname[-1] == ".":
+        hostname = hostname[:-1] # strip exactly one dot from the right, if present
+    allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+    return all(allowed.match(x) for x in hostname.split("."))
+
+
+def check_params(darknetlibfilepath, datafilepath, cfgfilepath, 
+                 weightfilepath, host, port, uploaddir, pub_img_flg):
+    """
+    checking parameters
+    """
+
+    validation_flg = True
+    for targetpath in [darknetlibfilepath, datafilepath,
+                       cfgfilepath, weightfilepath]:
+        validation_flg = check_path(targetpath)
+
+    if not validate_host_name(host):
+        print('%s is invalid as host name' % host)
+    
+    if port < 0 or port > 65535:
+        print('port should be between 0 and 65535 but actual is %d' % host)
+        validation_flg = False
+    elif port > 0 and port < 1024:
+        print('[Waring] you use well-known ports, %d' % port)
+
+    return validation_flg
 
 def importargs():
     parser = argparse.ArgumentParser('This is a server of darknet')
@@ -191,14 +273,31 @@ def importargs():
 
 
 def main():
-    cfgfilepath, datafilepath, weightfilepath, host, port, uploaddir, pub_img_flag = importargs()
-    yolo = Yolo(cfgfilepath.encode(), datafilepath.encode(), weightfilepath.encode())
+    darknet_server_conffilepath = "./conf/darknet_server.ini"
+    darknetlibfilepath, datafilepath, cfgfilepath, \
+        weightfilepath, host, port, uploaddir, \
+            pub_img_flg = get_params(darknet_server_conffilepath)
 
-    server = DarknetServer(host, 'yolo_server', uploaddir, [ 'jpg', 'png' ], pub_img_flag, yolo )
-    server.setup_converter()
-    print("server run")
-    server.run(host=host, port=port)
+    if check_params(darknetlibfilepath, datafilepath, cfgfilepath,
+                    weightfilepath, host, port, uploaddir, pub_img_flg):
 
+        darknet = Darknet(libfilepath=darknetlibfilepath,
+                          cfgfilepath=cfgfilepath.encode(),
+                          weightsfilepath=weightfilepath.encode(),
+                          datafilepath=datafilepath.encode())
+
+        darknet.load_conf()
+
+
+        server = DarknetServer(host, 'darknet_server',
+                               uploaddir, ['jpg', 'png'],
+                               pub_img_flg, darknet)
+        server.setup_converter()
+        print("server run")
+        server.run(host=host, port=port)
+    else:
+        print('validation error')
+        sys.exit(1)
 
 
 if __name__ == "__main__":
