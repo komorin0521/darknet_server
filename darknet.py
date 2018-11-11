@@ -8,7 +8,16 @@ Darknet pytno interface
 import argparse
 from ctypes import c_char_p, c_float, c_int, c_void_p, pointer
 from ctypes import CDLL, POINTER, RTLD_GLOBAL, Structure
+import math
 import random
+
+
+import cv2
+import numpy as np
+from PIL import Image
+
+
+from yolo_result import YoloResult
 
 
 def sample(probs):
@@ -102,6 +111,12 @@ class Darknet(object):
         self.net = None
         self.meta = None
 
+        self.colors = [
+                       [1, 0, 1], [0, 0, 1],
+                       [0, 1, 1], [0, 1, 0],
+                       [1, 1, 0], [1, 0, 0]
+                      ]
+
         self.lib = CDLL(self.libfilepath, RTLD_GLOBAL)
         self.lib.network_width.argtypes = [c_void_p]
         self.lib.network_width.restype = c_int
@@ -181,12 +196,49 @@ class Darknet(object):
                                  0)
         self.meta = self.load_meta(self.datafilepath)
 
-    def detect(self, imagefilepath, thresh=.5, hier_thresh=.5, nms=.45):
+    def load_image(imagefilepath):
+        """
+        loading image
+        """
+        image = self.load_image(imagefilepath, 0, 0)
+        return image
+
+    def convert_to_yolo_img(self, img):
+        """
+        converting from rgb(PIL) image class to yolo image class
+        """
+
+        img = img / 255.0
+        h, w, c = img.shape
+        img = img.transpose(2, 0, 1)
+        img = img.reshape((w*h*c))
+        outimg = self.make_image(w, h, c)
+        data = c_array(c_float, img)
+        outimg.data = data
+        self.rgbgr_image(outimg)
+        return outimg
+
+
+    def get_color(self, c, x, max_num):
+        """
+        Getting color based on yolo src
+        """
+
+        ratio = 5*(float(x)/max_num)
+        i = int(math.floor(ratio))
+        j = int(math.ceil(ratio))
+        ratio -= i
+        r = (1 - ratio) * self.colors[i][c] + ratio*self.colors[j][c]
+        return int(255*r)
+
+
+    def detect(self, image, thresh=.5, hier_thresh=.5, nms=.45):
         """
         detecting
         """
 
-        image = self.load_image(imagefilepath, 0, 0)
+        image = self.convert_to_yolo_img(image)
+
         num = c_int(0)
         pnum = pointer(num)
         self.predict_image(self.net, image)
@@ -202,12 +254,51 @@ class Darknet(object):
                 if dets[j].prob[i] > 0:
                     bbox = dets[j].bbox
                     res.append(
-                        (self.meta.names[i], dets[j].prob[i], (bbox.x, bbox.y, bbox.w, bbox.h)))
-        res = sorted(res, key=lambda x: -x[1])
-        self.free_image(image)
+                        YoloResult(
+                                   i,self.meta.names[i],
+                                   dets[j].prob[i],
+                                   (
+                                    bbox.x, bbox.y,
+                                    bbox.w, bbox.h
+                                   )
+                                  )
+                              )
+        res = sorted(res, key=lambda x: x.score, reverse=True)
+        # self.free_image(image)
         self.free_detections(dets, num)
         return res
 
+
+    def draw_detections(self, img, yolo_results):
+        """
+        drawing result of yolo
+        """
+
+        _, height, _ = img.shape
+        for yolo_result in yolo_results:
+            class_index = yolo_result.class_index
+            obj_name = yolo_result.obj_name
+            x = yolo_result.x_min
+            y = yolo_result.y_min
+            w = yolo_result.width
+            h = yolo_result.height
+
+            offset = class_index * 123457 % self.meta.classes
+
+            red = self.get_color(2, offset, self.meta.classes)
+            green = self.get_color(1, offset, self.meta.classes)
+            blue = self.get_color(0, offset, self.meta.classes)
+            box_width = int(height * 0.006)
+            cv2.rectangle(img, (int(x), int(y)), (int(x+w)+1, int(y+h)+1), (red, green, blue), box_width)
+            cv2.putText(
+                        img, obj_name.decode(),
+                        (int(x) -2, int(y) -5),
+                        cv2.FONT_HERSHEY_COMPLEX,
+                        1.2, (red, green, blue),
+                        2, cv2.LINE_AA
+                       )
+
+        return img
 
     def classify(self, imagefilepath):
         """
@@ -260,6 +351,52 @@ def importargs():
         args.datafilepath, args.weightsfilepath, args.imagefilepath
 
 
+def save_pred_img(img, outputfilepath):
+    """
+    saving yolo result image
+    img: numpy.ndarray bgr(cv2 format) image
+    outputfilepath: str outputting filepath
+    """
+    cv2.imwrite(outputfilepath, img)
+
+
+def predict_from_cv2(yolo, inputfilepath, outputfilepath):
+    """
+    Predicting from cv2 format
+    yolo: Yolo class
+    inputfilepath: filepath of image
+    """
+
+    print("call func of predict_from_cv2")
+    print("image: %s" % inputfilepath)
+    cv2_img = cv2.imread(inputfilepath)
+    img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
+    yolo_results = yolo.detect(img)
+    for yolo_result in yolo_results:
+        yolo_result.show()
+    pred_img = yolo.draw_detections(cv2_img, yolo_results)
+    save_pred_img(pred_img, outputfilepath)
+
+
+def predict_from_pil(yolo, inputfilepath, outputfilepath):
+    """
+    Predicting from PIL format
+    yolo: Yolo class
+    inputfilepath: filepath of image
+    """
+
+    print("call func of predict_from_pil")
+    img = np.array(Image.open(inputfilepath))
+
+    yolo_results = yolo.detect(img)
+    for yolo_result in yolo_results:
+        yolo_result.show()
+
+    cv2_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    pred_img = yolo.draw_detections(cv2_img, yolo_results)
+    save_pred_img(pred_img, outputfilepath)
+
+    
 def main():
     """
     main
@@ -274,17 +411,12 @@ def main():
                       datafilepath=datafilepath.encode())
 
     darknet.load_conf()
-    res = darknet.detect(imgfilepath.encode())
-    print(res)
-    #net = load_net("cfg/densenet201.cfg", "/home/pjreddie/trained/densenet201.weights", 0)
-    #im = load_image("data/wolf.jpg", 0, 0)
-    #meta = load_meta("cfg/imagenet1k.data")
-    #r = classify(net, meta, im)
-    # print r[:10]
-    #net = load_net("cfg/tiny-yolo.cfg", "tiny-yolo.weights", 0)
-    #meta = load_meta("cfg/coco.data")
-    #r = detect(net, meta, "data/dog.jpg")
-    # print r
+
+    print("======================================")
+    predict_from_cv2(darknet, imgfilepath, 'pred_cv2.jpg')
+
+    print("======================================")
+    predict_from_pil(darknet, imgfilepath, 'pred_pil.jpg')
 
 
 if __name__ == "__main__":
