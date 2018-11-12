@@ -16,7 +16,7 @@ class YoloResult:
         """
 
         self.class_index = class_index
-        self.obj_name = obj_name
+        self.obj_name = obj_name.decode()
         self.score = score
         self.x_min = boundingbox[0] - boundingbox[2]/2 - 1
         self.y_min = boundingbox[1] - boundingbox[3]/2 - 1
