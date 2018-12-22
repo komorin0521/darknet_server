@@ -17,14 +17,16 @@ This server has two API.
     URI: '/get_predict_image'
     The parameter is same as '/detect'
 
-# SoftWare
+# SoftWare requirements
 - Python: 3.x
 
     I test only 3.5.2
 
 - darknet revision: 9a4b19c4158b064a164e34a83ec8a16401580850
+  darknet revision: 61c9d02ec461e30d55762ec7669d6a1d3c356fb2
 
 # Setup
+## Install Directly Your Machine
 1. Install darknet
    Install darknet, reading the website of darknet
 
@@ -42,11 +44,35 @@ This server has two API.
 
 5. Running server
 
-    `$ PYTHONPATH=${darknetPATH}/python python3 darknet_server.py -cf ./cfg/yolov3.cfg -df ./cfg/coco.data -wf ./yolov3.weights -ud ./upload -pf false`
+    `$ python3 darknet_server.py`
 
-    You can show the detail of arguments using option of "-h".
 
-6. Check the server response from other terminal
+If you want to your original model,
+please modify 'darknet_server/conf/darknet_server.ini'
+
+
+## Using docker
+
+### requirements
+1. docker-compose version 1.19.0-rc3, build cdd0282
+2. Docker version 18.06.1-ce, build e68fc7a. 
+    installed `nvidia-docker`
+
+I use the cuda-9.2 and nvidia driver is 396.44
+If you use another version, please modify the source image of dokcer,
+"nvidia/cuda:9.2-devel-ubuntu16.04"
+
+
+### How to install
+1. install docker, nvidia-docker, docker-compose
+2. please check the run of `nvidia-smi`
+3. start docker
+
+   ```
+   $ docker-compose up
+   ```
+
+# Check the server response from other terminal
     - Getting detection result
 
         `$ curl -XPOST -F file=@./data/person.jpg http://localhost:8080/detect`

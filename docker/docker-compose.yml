@@ -1,0 +1,11 @@
+version: '2.3'
+
+services:
+  darknet_python_server:
+    runtime: nvidia
+    container_name: darknet_python_server_ver1
+    image: darknet_python_server
+    ports:
+      - 8888:8888
+    volumes:
+      - ../conf:/opt/darknet_server/conf
