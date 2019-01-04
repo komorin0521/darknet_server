@@ -405,6 +405,7 @@ def main():
     libfilepath, cfgfilepath, \
         datafilepath, weightsfilepath, imgfilepath = importargs()
 
+    print("libfilepath: {}".format(libfilepath))
     darknet = Darknet(libfilepath=libfilepath,
                       cfgfilepath=cfgfilepath.encode(),
                       weightsfilepath=weightsfilepath.encode(),

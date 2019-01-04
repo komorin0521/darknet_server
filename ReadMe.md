@@ -6,21 +6,29 @@ Darknet is as following:
 
 This server has two API.
 
-1. Getting the detection result as json format
+1. Getting the detection result as json format including image(base64 decoded)
     URI: '/detect'
-    The parameter is 'thresh' which is threshold of yolo.
-    This is not required and the default value is 0.25.
+
+    parameter example
+    ```
+    {
+      "image": base64.b64decode(imgdata).decode("utf-8"),
+      "thesh": 0.5,
+      "get_img_flg": True
+    ```
+
+    The parameter of 'thresh' is threshold of yolo.
+    This is not required and the default value is 0.5.
     If thresh is less than default, more object can be detected but misrecgnition increses.
 
-
-2. Getting the image which is embedded the rectangle and object name
-    URI: '/get_predict_image'
-    The parameter is same as '/detect'
+    The paramete of `get_img_flg` is boolean.
+    If true, return image data embeded bbox of yolo resuls.
+    This parameter is optional and the defalut value is true.
 
 # SoftWare requirements
-- Python: 3.x
+- Python > 3.6
 
-    I test only 3.5.2
+    I test only 3.7.1
 
 - darknet revision: 9a4b19c4158b064a164e34a83ec8a16401580850
   darknet revision: 61c9d02ec461e30d55762ec7669d6a1d3c356fb2
@@ -73,47 +81,53 @@ If you use another version, please modify the source image of dokcer,
    ```
 
 # Check the server response from other terminal
-    - Getting detection result
 
-        `$ curl -XPOST -F file=@./data/person.jpg http://localhost:8080/detect`
+```
+$ python simple_client.py |sed "s/'/\"/g" |jq
+```
 
-        If the server work well, you will get message like following
-        When you start up "-pf true" and the process can access /var/www/html/images, 
-        you can get the image src.
+If the server work well, you will get message like following
 
-        ```
-        {
-            'status' : 200,
-            'result' : [
-                            { 'obj_name' : 'dog',
-                              'score' : 0.86223...,
-                     'bounding_box' : {
-                        'height' : 86.09...,
-                        'width' : 137.617...,
-                        'x_min': '61.686...',
-                        'y_min': '264.982...'
-
-                     }
-                   },
-                   {
-                     ...
-                   }
-                 ],
-            'img_src' : 'http://localhost/images/yyyymmdd_pred.jpg'
-        }
-        ```
-
-        If you want to change the threshold, please request like following
-
-        `curl -F file=@./data/person.jpg -F thresh=0.850 http://localhost:8080/detect`
-
-    - Getting image
-
-        `$ curl -XPOST -F file=@/home/omori/darknet/data/person.jpg http://localhost:8080/get_predict_image > predictions.jpg`
-
-        If you want to change the threshold, please request like following
-
-        `curl -F file=@./data/person.jpg -F thresh=0.850 http://localhost:8080/get_predict_image > predictions.jpg`
+```
+{
+  "status": "success",
+  "resultlist": [
+    {
+      "class_index": 0,
+      "obj_name": "person",
+      "score": 0.9997863173484802,
+      "bounding_box": {
+        "x_min": 191.12104034423828,
+        "y_min": 100.11891174316406,
+        "width": 79.28132629394531,
+        "height": 277.3841247558594
+      }
+    },
+    {
+      "class_index": 17,
+      "obj_name": "horse",
+      "score": 0.9993027448654175,
+      "bounding_box": {
+        "x_min": 402.7898635864258,
+        "y_min": 135.62349700927734,
+        "width": 198.86619567871094,
+        "height": 219.7958526611328
+      }
+    },
+    {
+      "class_index": 16,
+      "obj_name": "dog",
+      "score": 0.9974156618118286,
+      "bounding_box": {
+        "x_min": 60.97343444824219,
+        "y_min": 264.89939880371094,
+        "width": 138.28082275390625,
+        "height": 82.55728149414062
+      }
+    }
+  ]
+}
+```
 
 # More information
 If you want more information about scripts, please show the help as following.

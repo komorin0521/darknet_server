@@ -1,5 +1,10 @@
 upload/*.jpg
-!uptload/.gitignore
+!upload/.gitkeep
+
+log/*.log
+!log/.gitkeep
+
+test.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
