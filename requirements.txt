@@ -33,7 +33,7 @@ rfc3986==1.2.0
 Rx==1.6.1
 six==1.12.0
 starlette==0.9.9
-urllib3==1.24.1
+urllib3==1.24.2
 uvicorn==0.3.24
 uvloop==0.11.3
 websockets==7.0
