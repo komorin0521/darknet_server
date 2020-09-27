@@ -36,7 +36,8 @@ This server has two API.
 # Setup
 ## Install Directly Your Machine
 1. Install darknet
-   Install darknet, reading the website of darknet
+
+    Install darknet, reading the website of darknet
 
 2. Clone of this repository
 
