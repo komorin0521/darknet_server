@@ -54,14 +54,15 @@ class DarknetServer:
         try:
             img_np_arr = np.array(Image.open(
                 io.BytesIO(img_data)).convert("RGB"))
+            cv2_img = cv2.cvtColor(img_np_arr, cv2.COLOR_RGB2BGR)
             self.logger.info("call self.yolo.detect")
-            yolo_results = self.yolo.detect(img_np_arr, thresh)
+            yolo_results = self.yolo.detect(cv2_img, thresh)
             for yolo_result in yolo_results:
                 self.logger.info(yolo_result.get_detect_result())
         except Exception as err:
             raise err
 
-        return img_np_arr, yolo_results
+        return cv2_img, yolo_results
 
     async def detect(self, req, resp):
         """
@@ -79,7 +80,7 @@ class DarknetServer:
             else:
                 thresh = 0.5
             try:
-                img_np_arr, yolo_results = self.get_yolo_results(img_data,
+                cv2_img, yolo_results = self.get_yolo_results(img_data,
                                                                  thresh)
                 res = {"status": "success",
                        "resultlist": [yolo_result.get_detect_result() for yolo_result in yolo_results]}
@@ -90,7 +91,6 @@ class DarknetServer:
                     get_img_flg = True
 
                 if get_img_flg:
-                    cv2_img = cv2.cvtColor(img_np_arr, cv2.COLOR_RGB2BGR)
                     cv2_img = self.yolo.draw_detections(cv2_img,
                                                         yolo_results)
                     _, buf = cv2.imencode(".png", cv2_img)
