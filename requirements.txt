@@ -36,5 +36,5 @@ starlette==0.9.9
 urllib3==1.24.1
 uvicorn==0.3.24
 uvloop==0.11.3
-websockets==7.0
+websockets==9.1
 whitenoise==4.1.2
